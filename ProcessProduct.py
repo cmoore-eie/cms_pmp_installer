@@ -62,7 +62,7 @@ class ProcessProduct:
                 initialize_tag = True
                 self.process_initialize(root, initialize_tag, child)
             if child.tag == 'CovTerms':
-                self.process_covterms(root, child)
+                self.process_covterms(child)
             if child.tag == 'Schedules':
                 pass
 
@@ -175,7 +175,7 @@ class ProcessProduct:
                             pass
                         else:
                             current_code = current_code + line_code + '\n'
-                        
+
                     if child.text.count('return ') > 1:
                         new_var = new_var + 'var actual : boolean'
                         new_var = new_var + str(current_code).replace('return', 'actual =').replace('"', '\"')
@@ -220,7 +220,7 @@ class ProcessProduct:
     Process the coverage terms, this involves similar process to the root
     """
 
-    def process_covterms(self, root, child):
+    def process_covterms(self, child):
         for child_element in child:
 
             term_identifier = None
@@ -229,17 +229,17 @@ class ProcessProduct:
                     term_identifier = att[attribute_value]
 
             if child_element.tag == 'PackageCovTermPattern':
-                self.process_base_covterms(root, child_element, term_identifier)
-                self.process_package_covterms(root, child_element, term_identifier)
+                self.process_base_covterms(child_element, term_identifier)
+                self.process_package_covterms(child_element)
             if child_element.tag == 'OptionCovTermPattern':
-                self.process_base_covterms(root, child_element, term_identifier)
-                self.process_option_covterms(root, child_element, term_identifier)
+                self.process_base_covterms(child_element, term_identifier)
+                self.process_option_covterms(child_element, term_identifier)
             if child_element.tag == 'GenericCovTermPattern':
-                self.process_base_covterms(root, child_element, term_identifier)
+                self.process_base_covterms(child_element, term_identifier)
             if child_element.tag == 'DirectCovTermPattern':
-                self.process_base_covterms(root, child_element, term_identifier)
+                self.process_base_covterms(child_element, term_identifier)
 
-    def process_option_covterms(self, root, child_element, term_identifier):
+    def process_option_covterms(self, child_element, term_identifier):
         for option_cov_term in child_element:
             if option_cov_term.tag == 'Options':
                 for cov_term_opt in option_cov_term:
@@ -250,29 +250,25 @@ class ProcessProduct:
                     cov_term_opt_tag = False
                     for cov_term_opt_item in cov_term_opt:
                         cov_term_opt_tag = True
-                        self.process_availability(cov_term_opt, cov_term_opt_tag, cov_term_opt_item
-                                                  , 'term_option',
+                        self.process_availability(cov_term_opt, cov_term_opt_tag, cov_term_opt_item, 'term_option',
                                                   [self.code_identifier, term_identifier,
                                                    cov_term_opt_identifier])
                     if not cov_term_opt_tag:
-                        self.process_availability(cov_term_opt, False, None
-                                                  , 'term_option',
+                        self.process_availability(cov_term_opt, False, None, 'term_option',
                                                   [self.code_identifier, term_identifier,
                                                    cov_term_opt_identifier])
 
-    def process_base_covterms(self, root, child_element, term_identifier):
+    def process_base_covterms(self, child_element, term_identifier):
         availability_tag = False
         for child_element_child in child_element:
             if child_element_child.tag == 'AvailabilityScript':
                 availability_tag = True
-                self.process_availability(child_element, availability_tag, child_element_child
-                                          , 'term', term_identifier)
+                self.process_availability(child_element, availability_tag, child_element_child, 'term', term_identifier)
 
         if not availability_tag:
-            self.process_availability(child_element, availability_tag, None
-                                      , 'term', term_identifier)
+            self.process_availability(child_element, availability_tag, None, 'term', term_identifier)
 
-    def process_package_covterms(self, root, child_element, term_identifier):
+    def process_package_covterms(self, child_element):
         for option_cov_term in child_element:
             if option_cov_term.tag == 'Packages':
                 for cov_term_opt in option_cov_term:
@@ -282,6 +278,7 @@ class ProcessProduct:
                                 pass
                             else:
                                 cov_term_opt_item.text = CDATA(cov_term_opt_item.text)
+        return self
 
     def __init__(self, in_pc_path, in_pc_product_line):
         self.pc_path = in_pc_path

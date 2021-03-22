@@ -7,20 +7,24 @@ help_str = '''
 
 Please supply the arguments for -s, -p and -a
         -s, --source - source path to the PolicyCenter configuration directory e.g .../PolicyCenter/modules/configuration
-        -p, --products - comma separated list of lines, this is a list of the code identifiers for the line(s) e.g CPLine, IMLine
-        -a, --abbreviations - comma separated list of product abbreviations, the abbreviations corrispond to the sub folder under the pcf lob directory e.g. ba,cp
-        
+        -p, --products - comma separated list of lines, this is a list of the code identifiers for the line(s) e.g CPLine,IMLine
+        -a, --abbreviations - comma separated list of product abbreviations, the abbreviations correspond to the sub folder 
+        -l, --location - location where the code is generated e.g. ext.lob
+        under the pcf lob directory e.g. ba,cp
+
         -h, --help - displays this text
-        
+
         '''
+
 
 def main(argv):
     pc_path = ''
     pc_product_line = ''
     pc_product_abbreviations = ''
+    pc_product_location = ''
 
     try:
-        opts, args = getopt.getopt(argv, 'hs:p:a:', ['help', 'source =','products =', 'abbreviations -'])
+        opts, args = getopt.getopt(argv, 'hs:p:a:l:', ['help', 'source =', 'products =', 'abbreviations =', 'location ='])
     except getopt.GetoptError:
         print(help_str)
         sys.exit(2)
@@ -32,6 +36,8 @@ def main(argv):
             pc_product_line = arg
         elif opt in ['-a', '--abbreviations']:
             pc_product_abbreviations = arg
+        elif opt in ['-l', '--location']:
+            pc_product_location = arg
         elif opt in ['-h', '--help']:
             print(help_str)
             sys.exit()
@@ -39,7 +45,7 @@ def main(argv):
             sys.exit()
 
     if pc_path == '':
-        print("-i missing and is required")
+        print("-s missing and is required")
         print(help_str)
         sys.exit()
 
@@ -53,11 +59,18 @@ def main(argv):
         print(help_str)
         sys.exit()
 
+    if pc_product_location == '':
+        print("-l, (--location) is  missing and will default to ext.lob")
+        pc_product_location = 'ext.lob'
+
     print('pc_path : ' + pc_path)
     print('pc_product_line : ' + pc_product_line)
+    print('pc_product_abbreviations : ' + pc_product_abbreviations)
+    print('pc_product_location : ' + pc_product_location)
 
     if pc_product_line != '':
         for line in pc_product_line.split(','):
+            pass
             product_process = ProcessProduct(pc_path, line)
             product_process.process_clause_patterns()
 

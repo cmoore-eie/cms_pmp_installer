@@ -5,6 +5,8 @@ from lxml import etree
 attribute_type = 0
 attribute_value = 1
 pc_pcf = '/config/web/pcf/line'
+apd_class = 'gw.web.rules.APDRulesHelper'
+pmp_class = 'gw.pmp.apd.web.rules.APDRulesHelper_PMP'
 
 
 class ProcessPCF:
@@ -18,6 +20,8 @@ class ProcessPCF:
         tree = etree.parse(self.pc_policy_dir + '/' + in_pcf_file)
         root = tree.getroot()
         for element in root.iter():
+            if element.tag == 'Variable':
+                self.process_apd_variable(element)
             if element.tag == 'TextInput':
                 self.process_tag(element)
             if element.tag == 'RangeInput':
@@ -40,39 +44,35 @@ class ProcessPCF:
         file.write(content.decode('utf-8'))
         file.close()
 
-    def process_tag(self, element):
-        available_str = None
-        editable_str = None
-        visible_str = None
-        value_str = None
+    def process_apd_variable(self, element):
         required_str = None
+        attributes = element.attrib
+        if 'name' in attributes:
+            _name = attributes.get('name')
+            if _name == 'isEditable':
+                self.update_apd_tag(attributes)
+            if _name == 'isVisible':
+                self.update_apd_tag(attributes)
+            if _name == 'isRequired':
+                self.update_apd_tag(attributes)
+            if _name == 'isAvailable':
+                self.update_apd_tag(attributes)
 
-        for attribute in element.items():
-            if attribute[attribute_type] == 'available':
-                available_str = attribute[attribute_value]
-            if attribute[attribute_type] == 'editable':
-                editable_str = attribute[attribute_value]
-            if attribute[attribute_type] == 'visible':
-                visible_str = attribute[attribute_value]
-            if attribute[attribute_type] == 'value':
-                value_str = attribute[attribute_value]
-            if attribute[attribute_type] == 'required':
-                required_str = attribute[attribute_value]
+    def process_tag(self, element):
+        attributes = element.attrib
+        if attributes.get('required') is None or (not attributes.get('required').startswith(pmp_class) and not attributes.get('required') == 'isRequired'):
+            self.process_required(attributes, attributes.get('required'), self.get_field(attributes))
+        if attributes.get('available') is None or (not attributes.get('available').startswith(pmp_class) and not attributes.get('available') == 'isAvailable'):
+            self.process_available(attributes, attributes.get('available'), self.get_field(attributes))
 
-        if available_str is None or 'SchemeUtil_PMP' not in available_str:
-            self.process_available(element, available_str, self.get_field(value_str))
+    def update_apd_tag(self, attributes):
+        if 'initialValue' in attributes:
+            _initialValue = attributes.get('initialValue').replace(apd_class, pmp_class)
+            attributes['initialValue'] = _initialValue
+        return self
 
-        if editable_str is None or 'SchemeUtil_PMP' not in editable_str:
-            self.process_editable(element, editable_str, self.get_field(value_str))
-
-        if visible_str is None or 'SchemeUtil_PMP' not in visible_str:
-            self.process_visible(element, visible_str, self.get_field(value_str))
-
-        if required_str is None or 'SchemeUtil_PMP' not in required_str:
-            self.process_required(element, required_str, self.get_field(value_str))
-
-    def get_field(self, value_str):
-        field_str_array = value_str.split('.')
+    def get_field(self, attributes):
+        field_str_array = attributes.get('value').split('.')
         field_str = ''
         for field in range(len(field_str_array)):
             if field < len(field_str_array) - 1:
@@ -82,67 +82,41 @@ class ProcessPCF:
                     field_str = field_str + '.' + field_str_array[field]
             else:
                 field_str = field_str + '#' + field_str_array[field]
-        return [field_str_array[0], field_str]
+        if self:
+            return [field_str_array[0], field_str]
 
-    def process_available(self, element, available_str, value_str):
+    def process_available(self, attributes, available_str, value_str):
         if value_str[1].startswith('#'):
             return
         default_str = 'true'
         if available_str is not None:
             default_str = '(' + available_str + ')'
 
-        available_str = 'gw.pmp.scheme.util.SchemeUtil_PMP.isAvailable(' \
-                        + value_str[1] + '.PropertyInfo, ' \
-                        + default_str + ', ' \
-                        + value_str[0] \
+        available_str = pmp_class + '.isAvailable(' \
+                        + value_str[0] + '.PolicyLine, ' \
+                        + value_str[0] + ', ' \
+                        + value_str[1] + '.PropertyInfo' \
                         + ')'
 
-        element.set('available', available_str)
+        attributes['available'] = available_str
+        return self
 
-    def process_editable(self, element, editable_str, value_str):
-        if value_str[1].startswith('#'):
-            return
-        default_str = 'true'
-        if editable_str is not None:
-            default_str = '(' + editable_str + ')'
-
-        editable_str = 'gw.pmp.scheme.util.SchemeUtil_PMP.isEditable(' \
-                       + value_str[1] + '.PropertyInfo, ' \
-                       + default_str + ', ' \
-                       + value_str[0] \
-                       + ')'
-
-        element.set('editable', editable_str)
-
-    def process_visible(self, element, visible_str, value_str):
-        if value_str[1].startswith('#'):
-            return
-        default_str = 'true'
-        if visible_str is not None:
-            default_str = '(' + visible_str + ')'
-
-        visible_str = 'gw.pmp.scheme.util.SchemeUtil_PMP.isVisible(' \
-                      + value_str[1] + '.PropertyInfo, ' \
-                      + default_str + ', ' \
-                      + value_str[0] \
-                      + ')'
-
-        element.set('visible', visible_str)
-
-    def process_required(self, element, required_str, value_str):
+    def process_required(self, attributes, required_str, value_str):
         if value_str[1].startswith('#'):
             return
         default_str = 'false'
         if required_str is not None:
             default_str = '(' + required_str + ')'
 
-        required_str = 'gw.pmp.scheme.util.SchemeUtil_PMP.isVisible(' \
+        required_str = pmp_class + '.isRequired(' \
+                       + value_str[0] + '.PolicyLine, ' \
+                       + value_str[0] + ', ' \
                        + value_str[1] + '.PropertyInfo, ' \
-                       + default_str + ', ' \
-                       + value_str[0] \
+                       + default_str \
                        + ')'
 
-        element.set('required', required_str)
+        attributes['required'] = required_str
+        return self
 
     def __init__(self, in_pc_path, in_pc_product_abbreviation):
         self.pc_path = in_pc_path
