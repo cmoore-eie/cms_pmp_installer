@@ -3,3 +3,4 @@ __pycache__/
 build/
 build/
 pmpinstall.spec
+.DS_Store
