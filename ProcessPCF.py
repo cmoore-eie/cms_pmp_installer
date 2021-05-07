@@ -8,6 +8,7 @@ pc_pcf = '/config/web/pcf/line'
 apd_class = 'gw.web.rules.APDRulesHelper'
 pmp_class = 'gw.pmp.apd.web.rules.APDRulesHelper_PMP'
 file_ends = ['PanelSet.pcf', 'Popup.pcf', 'ListDetail.pcf', 'Screen.pcf']
+no_process = ['MenuItemSet', 'WizardStepSet']
 
 
 class ProcessPCF:
@@ -15,18 +16,43 @@ class ProcessPCF:
     def process_pcf(self):
         for x in os.listdir(self.pc_policy_dir):
             print(f'processing : {x}')
-            self.process_root(x)
+            if not self.check_no_process(x):
+                self.process_root(self.pc_policy_dir, x)
+        for x in os.listdir(self.pc_policy_file_dir):
+            print(f'processing : {x}')
+            if not self.check_no_process(x):
+                self.process_root(self.pc_policy_file_dir, x)
+        for x in os.listdir(self.pc_job_dir):
+            print(f'processing : {x}')
+            if not self.check_no_process(x):
+                self.process_root(self.pc_job_dir, x)
 
-    def process_root(self, in_pcf_file):
-        tree = etree.parse(self.pc_policy_dir + '/' + in_pcf_file)
+    def check_no_process(self, in_file_name: str):
+        for nop in no_process:
+            if in_file_name.count(nop) > 0:
+                return True
+        return False
+
+    def process_root(self, in_dir: str, in_pcf_file: str):
+        tree = etree.parse(in_dir + '/' + in_pcf_file)
         root = tree.getroot()
         for element in root.iter():
+            if element.tag == 'WizardStepSet':
+                self.process_id(element, in_pcf_file)
+            if element.tag == 'Page':
+                self.process_id(element, in_pcf_file)
+                self.process_ref(element, 'ScreenRef')
             if element.tag == 'PanelSet':
                 self.process_id(element, in_pcf_file)
+                self.process_ref(element, 'PanelRef')
             if element.tag == 'Popup':
                 self.process_id(element, in_pcf_file)
+            if element.tag == 'LocationGroup':
+                self.process_id(element, in_pcf_file)
+                self.process_ref(element, 'LocationRef')
             if element.tag == 'Screen':
                 self.process_id(element, in_pcf_file)
+                self.process_ref(element, 'PanelRef')
             if element.tag == 'Variable':
                 self.process_apd_variable(element)
             if element.tag == 'TextInput':
@@ -47,11 +73,13 @@ class ProcessPCF:
                 self.process_tag(element)
             if element.tag == 'LocationEntryPoint':
                 self.process_location_entry_point(element, in_pcf_file)
+            if element.tag == 'TextCell':
+                self.process_tag(element)
 
         content = etree.tostring(root, pretty_print=True)
         new_pcf_file = self.new_file_name(in_pcf_file)
         print(f'writing : {new_pcf_file}')
-        file = open(self.pc_policy_dir + "/" + new_pcf_file, 'w')
+        file = open(in_dir + "/" + new_pcf_file, 'w')
         file.write(content.decode('utf-8'))
         file.close()
 
@@ -77,6 +105,21 @@ class ProcessPCF:
             _location = attributes.get('signature')
             attributes['signature'] = _location.replace(_sig_name, _new_name)
 
+    def process_ref(self, element, in_ref):
+        _ref_type = ['ref', 'location', 'def']
+        for sub_element in element.iter():
+            if sub_element.tag == in_ref:
+                attributes = sub_element.attrib
+                for ref in _ref_type:
+                    if ref in attributes:
+                        _location_name = f"{attributes.get(ref).split('(')[0]}.pcf"
+                        if _location_name.startswith('OOSEPanelSet'):
+                            pass
+                        else:
+                            _new_name = self.new_file_name(_location_name)
+                            _location = attributes.get(ref)
+                            attributes[ref] = _location.replace(_location_name.replace('.pcf', ''), _new_name.replace('.pcf', ''))
+
     def process_id(self, element, in_pfc_file: str):
         attributes = element.attrib
         if 'id' in attributes:
@@ -92,6 +135,17 @@ class ProcessPCF:
                 not attributes.get('available').startswith(pmp_class) and not attributes.get(
             'available') == 'isAvailable'):
             self.process_available(attributes, attributes.get('available'), self.get_field(attributes))
+        for sub_element in element.iter():
+            if sub_element.tag == 'PostOnChange':
+                self.process_post_on_change(sub_element)
+
+    def process_post_on_change(self, element):
+        attributes = element.attrib
+        if attributes.get('disablePostOnEnter') is None or (
+                not attributes.get('disablePostOnEnter').startswith(pmp_class)):
+            _pmpcode = attributes.get('disablePostOnEnter').replace(apd_class, pmp_class)
+            attributes['disablePostOnEnter'] = _pmpcode
+        return self
 
     def update_apd_tag(self, attributes):
         if 'initialValue' in attributes:
