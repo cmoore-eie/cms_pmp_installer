@@ -131,6 +131,10 @@ class ProcessPCF:
                 not attributes.get('required').startswith(pmp_class) and not attributes.get(
             'required') == 'isRequired'):
             self.process_required(attributes, attributes.get('required'), self.get_field(attributes))
+        if attributes.get('valueVisible') is not None and (
+                not attributes.get('valueVisible').startswith(pmp_class) and not attributes.get(
+            'valueVisible') == 'isVisible'):
+            self.process_value_visible(attributes, attributes.get('valueVisible'), self.get_field(attributes))
         if attributes.get('available') is None or (
                 not attributes.get('available').startswith(pmp_class) and not attributes.get(
             'available') == 'isAvailable'):
@@ -198,6 +202,18 @@ class ProcessPCF:
                        + ')'
 
         attributes['required'] = required_str
+        return self
+
+    def process_value_visible(self, attributes, visible_str, value_str):
+        if value_str[1].startswith('#'):
+            return
+        default_str = 'false'
+        if visible_str is not None:
+            default_str = '(' + visible_str + ')'
+
+        visible_str = visible_str.replace(apd_class, pmp_class)
+
+        attributes['valueVisible'] = visible_str
         return self
 
     def new_file_name(self, in_pfc_file: str):
