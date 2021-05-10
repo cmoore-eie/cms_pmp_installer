@@ -9,6 +9,7 @@ apd_class = 'gw.web.rules.APDRulesHelper'
 pmp_class = 'gw.pmp.apd.web.rules.APDRulesHelper_PMP'
 file_ends = ['PanelSet.pcf', 'Popup.pcf', 'ListDetail.pcf', 'Screen.pcf']
 no_process = ['MenuItemSet', 'WizardStepSet']
+name_change = dict()
 
 
 class ProcessPCF:
@@ -217,6 +218,8 @@ class ProcessPCF:
         return self
 
     def new_file_name(self, in_pfc_file: str):
+        if name_change.get(in_pfc_file) is not None:
+            return name_change.get(in_pfc_file)
         if in_pfc_file.count('_Ext') > 0:
             return in_pfc_file
         new_pcf_file: str = ''
@@ -225,6 +228,8 @@ class ProcessPCF:
                 new_pcf_file = in_pfc_file.replace(file_ending, '_Ext' + file_ending)
         if new_pcf_file == '':
             new_pcf_file = in_pfc_file.replace('.pcf', '_Ext.pcf')
+        if in_pfc_file != new_pcf_file:
+            name_change[in_pfc_file] = new_pcf_file
         if self:
             return new_pcf_file
 
