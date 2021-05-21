@@ -15,7 +15,7 @@ input_tags = ['TextInput', 'RangeInput', 'PickerInput', 'TextAreaInput', 'TypeKe
 name_change = dict()
 
 
-def check_no_process(in_file_name: str):
+def check_no_process(in_file_name: str) -> bool:
     """ There are some instances where the file should no be processed at the moment, by not processing these files
         defined in the no_process variable there may be some small manual changes needed to get the new PCF files to
         be used"""
@@ -42,6 +42,9 @@ class ProcessPCF:
                 self.process_root(self.pc_job_dir, x)
 
     def process_root(self, in_dir: str, in_pcf_file: str):
+        """ The PCF file is opened and each of the elements in the PCF file, depending on the element there may be
+            special processing that needs to take place. When a target element is identified the
+            function to process the element is called. """
         tree = etree.parse(in_dir + '/' + in_pcf_file)
         self.root = tree.getroot()
         for element in self.root.iter():
@@ -103,7 +106,7 @@ class ProcessPCF:
             _location = attributes.get('signature')
             attributes['signature'] = _location.replace(_sig_name, _new_name)
 
-    def process_ref(self, element, in_ref):
+    def process_ref(self, element, in_ref: str):
         _ref_type = ['ref', 'location', 'def']
         for sub_element in element.iter():
             if sub_element.tag == in_ref:
@@ -120,6 +123,8 @@ class ProcessPCF:
                                                                 _new_name.replace('.pcf', ''))
 
     def process_id(self, element, in_pfc_file: str):
+        """ Updates the id associated with the widget from the original to the modified name
+            making use of the _Ext"""
         attributes = element.attrib
         if 'id' in attributes:
             attributes['id'] = self.new_file_name(in_pfc_file).replace('.pcf', '')
@@ -183,9 +188,6 @@ class ProcessPCF:
     def process_available_variable(self, available_str, value_str):
         if value_str[1].startswith('#'):
             return
-        default_str = 'true'
-        if available_str is not None:
-            default_str = '(' + available_str + ')'
 
         available_str = pmp_class + '.isAvailable(' \
                         + value_str[0] + '.PolicyLine, ' \
@@ -200,6 +202,7 @@ class ProcessPCF:
         return self
 
     def process_required_variable(self, required_str, value_str):
+        """ Function to return the PMP function for the isRequired variable"""
         if value_str[1].startswith('#'):
             return
         default_str = 'false'
@@ -233,13 +236,13 @@ class ProcessPCF:
         input_attributes = None
         for sub_element in original_element.iter():
             #
-            # If there is a input widget in the input set the attributes are stored for later processing
+            # If there is an input widget in the input set the attributes are stored for later processing
             #
             if sub_element.tag in input_tags:
                 input_attributes = sub_element.attrib
             #
             # When a variable is found in the input set and it is in the apa_variables dictionary the
-            # item in the dictionary is swapped from False to True
+            # item in the dictionary is updated from False to True
             #
             if sub_element.tag == 'Variable':
                 attributes = sub_element.attrib
@@ -272,7 +275,7 @@ class ProcessPCF:
                 original_element.insert(0, variable_element)
         return self
 
-    def new_file_name(self, in_pfc_file: str):
+    def new_file_name(self, in_pfc_file: str) -> str:
         """Modifications to the originally generated APD PCF files should not be done, to this end this function
            defines the name of the new PCF file to be created. """
         if name_change.get(in_pfc_file) is not None:
