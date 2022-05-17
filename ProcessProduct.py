@@ -280,9 +280,10 @@ class ProcessProduct:
                                 cov_term_opt_item.text = CDATA(cov_term_opt_item.text)
         return self
 
-    def __init__(self, in_pc_path, in_pc_product_line):
-        self.pc_path = in_pc_path
-        self.pc_product_line = in_pc_product_line
+    def __init__(self, in_config_json):
+        self.config_json = in_config_json
+        self.pc_path = in_config_json['pc_path']
+        self.pc_product_line = in_config_json['pc_product_line']
         self.pc_product_dir = self.pc_path + pc_product_model + '/' + self.pc_product_line + '/coveragepatterns'
         self.code_identifier = ''
         self.owning_entity = ''

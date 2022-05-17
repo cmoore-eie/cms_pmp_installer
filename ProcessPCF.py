@@ -293,10 +293,11 @@ class ProcessPCF:
         if self:
             return new_pcf_file
 
-    def __init__(self, in_pc_path, in_pc_product_abbreviation):
+    def __init__(self, in_config_json):
+        self.config_json = in_config_json
         self.root = None
-        self.pc_path = in_pc_path
-        self.pc_product_abbreviation = in_pc_product_abbreviation
+        self.pc_path = in_config_json['pc_path']
+        self.pc_product_abbreviation = in_config_json['pc_product_abbreviation']
         self.pc_policy_dir = self.pc_path + pc_pcf + '/' + self.pc_product_abbreviation + '/policy'
         self.pc_policy_file_dir = self.pc_path + pc_pcf + '/' + self.pc_product_abbreviation + '/policyfile'
         self.pc_job_dir = self.pc_path + pc_pcf + '/' + self.pc_product_abbreviation + '/job'
