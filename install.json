@@ -1,5 +1,5 @@
 {
-  "process_type": "all",
+  "process_type": "api",
   "pc_path": "/Users/cmoore/Development/Projects/pmp/pmp5050_Test/modules/configuration",
   "pc_product_line": "CPDLine",
   "pc_product_abbreviation": "CPD",

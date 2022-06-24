@@ -2,29 +2,12 @@ import os
 
 from lxml import etree
 
+from APITemplates import uses_values_list, load_values_list
+
 attribute_type = 0
 attribute_value = 1
 pc_api = '/gsrc/gw/rest/ext/pc/policyperiod'
 name_change = dict()
-
-uses_values = []
-uses_values.append("uses gw.pmp.scheme.util.SchemeUtil_PMP\n")
-uses_values.append("uses gw.rest.core.pc.policyperiod.v1.coverage.ClauseWrapper\n")
-uses_values.append("uses java.util.stream.Stream\n")
-uses_values.append("\n")
-
-load_values = []
-load_values.append('\n')
-load_values.append('  protected override function loadValues() : Stream {\n')
-load_values.append('    var retVal = super.loadValues()\n')
-load_values.append('    for(item in retVal.toArray()){\n')
-load_values.append('      if(item typeis ClauseWrapper) {\n')
-load_values.append('        SchemeUtil_PMP.isCoverageIncluded(item.Pattern.CodeIdentifier, true, Coverable)\n')
-load_values.append('      }\n')
-load_values.append('    }\n')
-load_values.append('    return retVal\n')
-load_values.append('  }\n')
-
 
 def process_file(in_file_name: str) -> bool:
     """ There are some instances where the file should no be processed at the moment, by not processing these files
@@ -62,22 +45,22 @@ class ProcessAPI:
     def process_uses(self, file_contents, file_path):
         insert = 0
         for line in file_contents:
-            if line.find(uses_values[0]) >= 0:
+            if line.find(uses_values_list()[0]) >= 0:
                 return
         for line in file_contents:
             if line.find('package ') == -1:
                 insert += 1
                 break
-        for uses_item in uses_values:
+        for uses_item in uses_values_list():
             insert += 1
             file_contents.insert(insert, uses_item)
 
     def process_load_values(self, file_contents, file_path):
         for line in file_contents:
-            if line.find(load_values[1]) >= 0:
+            if line.find(load_values_list()[1]) >= 0:
                 return
         file_contents[-1] = ''
-        for line in load_values:
+        for line in load_values_list():
             file_contents.append(line)
         file_contents.append('}')
 
