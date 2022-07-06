@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-lxml = "==4.6.5"
+lxml = "==4.9.1"
 
 [dev-packages]
 
